@@ -191,6 +191,7 @@ def generate_batch(data, batch_size, num_skips, skip_window):
 
 
 def load_data_for_doc_class(data_dir='./reddit_data_MH', num_cats=None):
+
     json_data = load_json(data_dir)
 
     # Subreddit = target
