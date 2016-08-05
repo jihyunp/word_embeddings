@@ -192,6 +192,15 @@ def generate_batch(data, batch_size, num_skips, skip_window):
 
 def load_data_for_doc_class(data_dir='./reddit_data_MH', num_cats=None):
 
+    def delete_punctuation(input_str):
+        tmpstr = input_str.lower()
+        tmpstr = re.sub('\[deleted\]', ' ', tmpstr)
+        tmpstr = re.sub('\\n', ' ', tmpstr)
+        tmpstr = re.sub('[^a-z0-9\-\' ]', ' ', tmpstr)
+        tmpstr = re.sub(' ---*', ' ', tmpstr)
+        tmpstr = re.sub(r'\s+', ' ', tmpstr)
+        return tmpstr
+
     json_data = load_json(data_dir)
 
     # Subreddit = target
@@ -217,7 +226,10 @@ def load_data_for_doc_class(data_dir='./reddit_data_MH', num_cats=None):
             idx += 1
 
         target.append(target_dict[yname])
-        data.append(body)
+        # Delete punctuations and process body
+        processed_body = delete_punctuation(body)
+        data.append(processed_body)
+
 
     if num_cats is not None:
         tot_data_size = len(target)
