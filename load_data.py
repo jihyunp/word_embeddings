@@ -96,6 +96,10 @@ def load_sentences_in_single_text(file_name):
     tmpstr = re.sub(r'\.\.+', '. ', tmpstr)  # Remove multiple periods
     tmpstr = re.sub(" \'", " ", tmpstr)
     tmpstr = re.sub("\' ", " ", tmpstr)
+    tmpstr = re.sub("\'$", "", tmpstr)
+    tmpstr = re.sub(" -", " ", tmpstr)
+    tmpstr = re.sub("- ", " ", tmpstr)
+    tmpstr = re.sub("-$", "", tmpstr)
 
     sent_list = tmpstr.split('. ')
     word_sent_list = map(lambda x: x.split(), sent_list)
