@@ -6,6 +6,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from datetime import datetime
+from collections import defaultdict
 
 
 def load_pretrained_word2vec(data_dir='/Users/jihyun/Documents/jihyun/research/word_embeddings/pre-trained/word2vec_CBOW/500K_subset'):
@@ -28,6 +29,23 @@ def load_pretrained_word2vec(data_dir='/Users/jihyun/Documents/jihyun/research/w
     return (dictionary, reverse_dictionary, wvecs)
 
 
+def load_json_subreddit_link(data_dir='./reddit_data_MH'):
+    data = []
+    subreddit2idx = defaultdict(list)
+    link2idx = defaultdict(list)
+    idx = 0
+    for dir, subdir, files in os.walk(data_dir):
+        for fname in files:
+            if fname.startswith('RC'):
+                fpath = os.path.join(dir, fname)
+                print(fpath)
+                tmpdata = load_single_json(fpath)
+                data.extend(tmpdata)
+                subred, linkid = extract_subreddit_link_info(tmpdata)
+                subreddit2idx[subred].append(idx)
+                link2idx[linkid].append(idx)
+                idx += 1
+    return data, subreddit2idx, link2idx
 
 
 def load_json(data_dir='./reddit_data_MH'):
@@ -43,6 +61,15 @@ def load_json(data_dir='./reddit_data_MH'):
     return data
 
 
+def extract_subreddit_link_info(single_data):
+    """
+    For a single json data (in dict), extract its subreddit and link_id (orig post id).
+    :param single_data:
+    :return:
+    """
+    subreddit = single_data["subreddit"]
+    link_id = single_data["link_id"]
+    return (subreddit, link_id)
 
 
 def load_single_json(file_name):
@@ -57,6 +84,7 @@ def load_single_json(file_name):
     for line in f:
         data.append(json.loads(line))
     return data
+
 
 def load_sentences(data_dir='./reddit_data_MH'):
     """
