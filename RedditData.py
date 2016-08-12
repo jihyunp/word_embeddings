@@ -15,16 +15,22 @@ class RedditData():
 
     def __init__(self, data_dir='./reddit_data_MH',
                  word2vec_file='./word2vec_reddit_2008_2015_20/gensim_word2vec_2008_2015_orig.vectors'):
-        t1 = datetime.now()
         self.data_dir = data_dir
-        self.json_data, self.subreddit2did, self.link2did = self._load_reddit_data(data_dir)
+        self.n_docs, self.n_subreddits, self.n_posts = None, None, None
+        self.w2v_model = None
+        self.json_data = None
+        self.subreddit2did, self.link2did = None, None
+        self.name2did, self.did2name = None, None
+
+        t1 = datetime.now()
+        self._load_reddit_data(data_dir)
         self._get_subreddit_info()
         self._update_stats()
         self._load_word2vec(word2vec_file)
         print('Took %.2f seconds to load.' % (datetime.now() - t1).seconds)
 
     def _update_stats(self):
-        self.n_comments = len(self.json_data)
+        self.n_docs = len(self.json_data)
         self.n_subreddits = len(self.subreddit2did)
         self.n_posts = len(self.link2did)
 
@@ -37,7 +43,7 @@ class RedditData():
 
     def _load_reddit_data(self, data_dir):
         data = self._load_json(data_dir)
-        return self._load_subreddit_link_info(data)
+        self._load_subreddit_link_info(data)
 
     def _load_subreddit_link_info(self, json_data):
         """
@@ -50,6 +56,8 @@ class RedditData():
         print('Extracting the subreddit and link information')
         subreddit2idx = defaultdict(list)
         link2idx = defaultdict(list)
+        idx2name = []
+        name2idx = defaultdict(int)
         new_data = []
         idx = 0
         for d in json_data:
@@ -59,11 +67,17 @@ class RedditData():
             if len(body.split()) < 15:
                 continue
             new_data.append(d)
-            subred, linkid = self.extract_subreddit_link_info(d)
+            name, subred, linkid = self.extract_subreddit_link_info(d)
             subreddit2idx[subred].append(idx)
             link2idx[linkid].append(idx)
+            name2idx[name] = idx
+            idx2name.append(name)
             idx += 1
-        return new_data, subreddit2idx, link2idx
+
+        self.json_data = new_data
+        self.subreddit2did, self.link2did = subreddit2idx, link2idx
+        self.name2did = name2idx
+        self.did2name = idx2name
 
     def _load_json(self, data_dir='./reddit_data_MH'):
         """
@@ -88,9 +102,10 @@ class RedditData():
         :param single_data:
         :return:
         """
+        name = single_data["name"]
         subreddit = single_data["subreddit"]
         link_id = single_data["link_id"]
-        return (subreddit, link_id)
+        return (name, subreddit, link_id)
 
     def load_single_json(self, file_name):
         """
@@ -105,29 +120,40 @@ class RedditData():
             data.append(json.loads(line))
         return data
 
-    def get_random_doc_within_subreddit(self, subreddit):
+    def get_random_doc_within_subreddit(self, subreddit, name_to_exclude=None):
         idxs = self.subreddit2did[subreddit]
-        idx = idxs[sample(range(len(idxs)), 1)[0]]
-        data = self.json_data[idx]
-        doc = data["body"]
-        return self.get_parsed_doc(doc)
+        if len(idxs) == 1:
+            return []
+        else:
+            idxs_copy = list(idxs)
+            if name_to_exclude is not None:
+                did_to_exclude = self.name2did[name_to_exclude]
+                del(idxs_copy[idxs_copy.index(did_to_exclude)])
+            idx = idxs_copy[sample(range(len(idxs_copy)), 1)[0]]
+            doc= self.json_data[idx]["body"]
+            return self.parse_string(doc)
 
-    def get_random_doc_within_post(self, link_id):
+    def get_random_doc_within_post(self, link_id, name_to_exclude):
         idxs = self.link2did[link_id]
-        idx = idxs[sample(range(len(idxs)), 1)[0]]
-        data = self.json_data[idx]
-        doc = data["body"]
-        return self.get_parsed_doc(doc)
+        if len(idxs) == 1:
+            return []
+        else:
+            idxs_copy = list(idxs)
+            did_to_exclude = self.name2did[name_to_exclude]
+            del(idxs_copy[idxs_copy.index(did_to_exclude)])
+            idx = idxs_copy[sample(range(len(idxs_copy)), 1)[0]]
+            doc = self.json_data[idx]["body"]
+            return self.parse_string(doc)
 
     def get_random_doc_outside_subreddit(self, subreddit):
         subred_id = self.subreddit2sid[subreddit]
         other_sids = range(self.n_subreddits)
         other_sids.remove(subred_id)
         sid = sample(other_sids, 1)[0]
-        return self.get_random_doc_within_subreddit(self.sid2subreddit[sid])
+        return self.get_random_doc_within_subreddit(self.sid2subreddit[sid], None)
 
     @staticmethod
-    def get_parsed_doc(doc, remove_stopwords=True):
+    def parse_string(doc, remove_stopwords=True):
         tmpstr = doc
         tmpstr = tmpstr.lower()
         tmpstr = re.sub('\[deleted\]', ' ', tmpstr)
@@ -153,4 +179,48 @@ class RedditData():
 
     def get_wmdistance(self, doc1, doc2):
         return self.w2v_model.wmdistance(doc1, doc2)
+
+    def get_three_scores(self, n_test=1000):
+        n_data = self.n_docs
+        test_idx = sample(range(n_data), n_test)
+
+        within_subreddit = []
+        within_post = []
+        random_doc = []
+
+        for idx in test_idx:
+            single_data = self.json_data[idx]
+            name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
+            sent_to_compare = self.parse_string(single_data['body'])
+            if len(sent_to_compare) < 2:
+                continue
+            doc1 = self.get_random_doc_within_subreddit(subreddit, name)
+            doc2 = self.get_random_doc_within_post(link_id, name)
+            doc3 = self.get_random_doc_outside_subreddit(subreddit)
+            if len(doc1) < 2:
+                continue
+            if len(doc2) < 2:
+                continue
+            if len(doc3) < 2:
+                continue
+            within_subreddit.append(self.get_wmdistance(sent_to_compare, doc1))
+            within_post.append(self.get_wmdistance(sent_to_compare, doc2))
+            rdist = self.get_wmdistance(sent_to_compare, doc3)
+            random_doc.append(rdist)
+
+        return within_subreddit, within_post, random_doc
+
+
+def plot_score_histogram(score, label, filename):
+    plt.clf()
+    hist_res = plt.hist(score)
+    xmax = max(hist_res[1])
+    ymax = max(hist_res[0])
+    mean_val = round(np.mean(score), 2)
+    std_val = round(np.std(score), 2)
+    plt.text(xmax*0.9, ymax*0.9, 'Mean: '+ str(mean_val)+'\nStd: '+ str(std_val))
+    plt.xlabel('WMD Score')
+    plt.ylabel('Number of posts/comments')
+    plt.title('Word Mover Distance '+ label)
+    plt.savefig(filename)
 
