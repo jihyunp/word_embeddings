@@ -9,6 +9,24 @@ from scipy.sparse import find
 # from ProcessData import ProcessData
 # from ProcessData import _split_data
 
+
+def _split_data(data, split):
+    if type(data) == list:
+        N = len(data)
+    else:
+        N = data.shape[0]
+    if sum(split) != N:
+        const = int(np.ceil(N / float(sum(split))))
+    else:
+        const = 1
+    starts = np.cumsum(np.r_[0, split[:-1]] * const)
+    ends = np.cumsum(split) * const
+    if ends[-1] > N:
+        ends[-1] = N
+    splits = [data[s:e] for s, e in zip(starts, ends)]
+    return splits
+
+
 class ReutersData():
 
     def __init__(self, orig_data_dir, output_dir, train_valid_split=(1, 0), sup_unsup_split=(1, 0),
@@ -178,9 +196,6 @@ class ReutersData():
         self.train_docids = train_did
         self.test_raw_text = test_data
         self.test_docids = test_did
-        self.unsup_raw_text = unsup_data
-        self.unsup_docids = unsup_did
-
 
 
 
@@ -263,6 +278,28 @@ class ReutersData():
         self.train_sup_x, self.valid_x = _split_data(self.train_x, self.train_valid_split)
         self.train_sup_y, self.valid_y = _split_data(self.train_y, self.train_valid_split)
         self.train_sup_docids, self.valid_docids = _split_data(self.train_docids, self.train_valid_split)
+
+    def print_svmlight_format(self, x_data, y_data, bow_txt_file, unsup=False):
+        print('Printing BOW ..')
+        f = open(bow_txt_file, 'w')
+        for i, catid in enumerate(y_data):
+            if unsup:
+                lab = str(int(catid))
+            else:
+                if self.binary:
+                    if catid == 0:
+                        lab = '-1'
+                    else: # catid == 1
+                        lab = '+1'
+                else:
+                    lab = str(int(catid + 1))
+            f.write('{}'.format(lab))
+            bow = find(x_data[i, :])
+            for num, wid in zip(bow[2], bow[1]):
+                num = int(num)
+                f.write(' {}:{}'.format(wid+1, num)) # Word id should start from 1
+            f.write('\n')
+        f.close()
 
     def save_and_print_data(self):
         # from copy import copy
