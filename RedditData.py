@@ -224,3 +224,19 @@ def plot_score_histogram(score, label, filename):
     plt.title('Word Mover Distance '+ label)
     plt.savefig(filename)
 
+
+def plot_three_scores_hist(score_list, label_list, filename):
+    plt.clf()
+    fig, axes = plt.subplots(3, 1, sharex=True, sharey=True)
+    for i, score in enumerate(score_list):
+        ax = axes[i]
+        hist_res = ax.hist(score, bins=30, range=(0, 45), align='mid', alpha=0.8)
+        xmax = max(hist_res[1])
+        ymax = max(hist_res[0])
+        mean_val = round(np.mean(score), 2)
+        std_val = round(np.std(score), 2)
+        ax.text(xmax * 0.9, ymax * 0.9, 'Mean: ' + str(mean_val) + '\nStd: ' + str(std_val))
+        ax.set_title('Word Mover Distance ' + label_list[i])
+    plt.xlabel('WMD Score')
+    axes[1].set_ylabel('Number of posts/comments')
+    plt.savefig(filename)
