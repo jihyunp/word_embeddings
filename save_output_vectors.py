@@ -3,7 +3,8 @@ from six import iteritems, itervalues, string_types
 
 # Assume that you've trained a word2vec model as 'model'.
 
-def save_syn1neg_vectors(fname='syn1.vectors',fvocab=None, binary=False):
+
+def save_syn1neg_vectors(model, fname='syn1.vectors', binary=False):
     # Save output vectors
 
     with utils.smart_open(fname, 'wb') as fout:

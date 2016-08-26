@@ -4,6 +4,9 @@ import re
 import os
 from datetime import datetime
 from gensim.models import Word2Vec
+from gensim import utils
+from six import iteritems
+
 
 class Word2VecData():
     """
@@ -17,6 +20,9 @@ class Word2VecData():
         self.n_docs, self.n_sents, self.n_words = 0, 0, 0
 
     def _update_stats(self):
+        pass
+
+    def _load_data(self, data_dir):
         pass
 
     def _load_word2vec(self, word2vec_file, binary):
@@ -36,13 +42,33 @@ class Word2VecData():
         pass
 
 
+def save_output_vectors(model, fname='syn1.vectors', binary=False):
+    """
+    Save output (syn1neg) vectors, given the Word2Vec model
 
-def load_sentences_in_text_file(file_name):
+    Parameters
+    ----------
+    model
+    fname
+    binary
+
+    Returns
+    -------
+    None
+
     """
-    Made for test purpose
-    :param file_name:
-    :return:
-    """
+    with utils.smart_open(fname, 'wb') as fout:
+        fout.write(utils.to_utf8("%s %s\n" % model.syn1neg.shape))
+        # store in sorted order: most frequent words at the top
+        for word, vocab in sorted(iteritems(model.vocab), key=lambda item: -item[1].count):
+            row = model.syn1neg[vocab.index]
+            if binary:
+                fout.write(utils.to_utf8(word) + b" " + row.tostring())
+            else:
+                fout.write(utils.to_utf8("%s %s\n" % (word, ' '.join("%f" % val for val in row))))
+
+
+def load_sentences_in_text_file(file_name, sep=" . "):
     print('Loading file ' + file_name)
     with open(file_name, 'r') as f:
         tmpstr = f.read()
@@ -62,7 +88,8 @@ def load_sentences_in_text_file(file_name):
     tmpstr = re.sub("- ", " ", tmpstr)
     tmpstr = re.sub("-$", "", tmpstr)
 
-    sent_list = tmpstr.split(' . ')
+    tmpstr = tmpstr.strip()
+    sent_list = tmpstr.split(sep)
     word_sent_list = map(lambda x: x.split(), sent_list)
 
     return word_sent_list
