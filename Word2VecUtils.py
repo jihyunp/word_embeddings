@@ -3,9 +3,12 @@ import numpy as np
 import re
 import os
 from datetime import datetime
+from six import iteritems, itervalues, string_types
+from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL,\
+    double, uint32, seterr, array, uint8, vstack, fromstring, sqrt, newaxis,\
+        ndarray, empty, sum as np_sum, prod, ones, ascontiguousarray
 from gensim.models import Word2Vec
-from gensim import utils
-from six import iteritems
+from gensim import utils, matutils  # utility fnc for pickling, common scipy operations etc
 
 
 class Word2VecData():
@@ -81,6 +84,48 @@ def load_sentences_in_text_file(file_name, sep=" . "):
     tmpstr = re.sub(' ---*', ' ', tmpstr)
     tmpstr = re.sub(r'\s+', ' ', tmpstr)
     tmpstr = re.sub(r'\.\.+', '. ', tmpstr)  # Remove multiple periods
+    tmpstr = re.sub(" \.", " ", tmpstr)
+    tmpstr = re.sub(" \'", " ", tmpstr)
+    tmpstr = re.sub("\' ", " ", tmpstr)
+    tmpstr = re.sub("\'$", "", tmpstr)
+    tmpstr = re.sub(" -", " ", tmpstr)
+    tmpstr = re.sub("- ", " ", tmpstr)
+    tmpstr = re.sub("-$", "", tmpstr)
+
+    tmpstr = tmpstr.strip()
+    sent_list = tmpstr.split(sep)
+    word_sent_list = map(lambda x: x.split(), sent_list)
+
+    return word_sent_list
+
+
+def load_sentences_in_large_text_file(file_name, sep=" . "):
+    """
+    Needs to be fixed.
+    Parameters
+    ----------
+    file_name
+    sep
+
+    Returns
+    -------
+
+    """
+    import csv
+    print('Loading file ' + file_name)
+    with open(file_name, 'r') as f:
+        reader = csv.reader(f, delimiter=sep)
+        tmpstr = f.read()
+
+    tmpstr= tmpstr.lower()
+    tmpstr = re.sub('\[deleted\]', ' ', tmpstr)
+    tmpstr = re.sub('\\n', ' ', tmpstr)
+    tmpstr = re.sub('\\\'', "'", tmpstr)
+    tmpstr = re.sub('[^a-z0-9\-.\' ]', ' ', tmpstr)
+    tmpstr = re.sub(' ---*', ' ', tmpstr)
+    tmpstr = re.sub(r'\s+', ' ', tmpstr)
+    tmpstr = re.sub(r'\.\.+', '. ', tmpstr)  # Remove multiple periods
+    tmpstr = re.sub(" \.", " ", tmpstr)
     tmpstr = re.sub(" \'", " ", tmpstr)
     tmpstr = re.sub("\' ", " ", tmpstr)
     tmpstr = re.sub("\'$", "", tmpstr)
@@ -203,4 +248,98 @@ def plot_three_scores_plot(score_list, label_list, filename):
     plt.xlabel('Comment Index')
     axes[1].set_ylabel('WMD Score')
     plt.savefig(filename)
+
+
+def most_similar(model, synnorm, positive=[], negative=[], topn=10, restrict_vocab=None):
+
+    if isinstance(positive, string_types) and not negative:
+        # allow calls like most_similar('dog'), as a shorthand for most_similar(['dog'])
+        positive = [positive]
+
+    # add weights for each word, if not already present; default to 1.0 for positive and -1.0 for negative words
+    positive = [
+        (word, 1.0) if isinstance(word, string_types + (ndarray,)) else word
+        for word in positive
+    ]
+    negative = [
+        (word, -1.0) if isinstance(word, string_types + (ndarray,)) else word
+        for word in negative
+    ]
+
+    # compute the weighted average of all words
+    all_words, mean = set(), []
+    for word, weight in positive + negative:
+        if isinstance(word, ndarray):
+            mean.append(weight * word)
+        elif word in model.vocab:
+            mean.append(weight * synnorm[model.vocab[word].index])
+            all_words.add(model.vocab[word].index)
+        else:
+            raise KeyError("word '%s' not in vocabulary" % word)
+    if not mean:
+        raise ValueError("cannot compute similarity with no input")
+    mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
+
+    limited = synnorm if restrict_vocab is None else synnorm[:restrict_vocab]
+    dists = dot(limited, mean)
+    if not topn:
+        return dists
+    best = matutils.argsort(dists, topn=topn + len(all_words), reverse=True)
+    # ignore (don't return) words from the input
+    result = [(model.index2word[sim], float(dists[sim])) for sim in best if sim not in all_words]
+    return result[:topn]
+
+
+def most_similar_two(model, synnorm1, synnorm2, positive=[], negative=[], topn=10, restrict_vocab=None):
+
+    if isinstance(positive, string_types) and not negative:
+        # allow calls like most_similar('dog'), as a shorthand for most_similar(['dog'])
+        positive = [positive]
+
+    # add weights for each word, if not already present; default to 1.0 for positive and -1.0 for negative words
+    positive = [
+        (word, 1.0) if isinstance(word, string_types + (ndarray,)) else word
+        for word in positive
+    ]
+    negative = [
+        (word, -1.0) if isinstance(word, string_types + (ndarray,)) else word
+        for word in negative
+    ]
+
+    # compute the weighted average of all words
+    all_words, mean = set(), []
+    for word, weight in positive + negative:
+        if isinstance(word, ndarray):
+            mean.append(weight * word)
+        elif word in model.vocab:
+            mean.append(weight * synnorm1[model.vocab[word].index])
+            all_words.add(model.vocab[word].index)
+        else:
+            raise KeyError("word '%s' not in vocabulary" % word)
+    if not mean:
+        raise ValueError("cannot compute similarity with no input")
+    mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
+
+    limited = synnorm2 if restrict_vocab is None else synnorm2[:restrict_vocab]
+    dists = dot(limited, mean)
+    if not topn:
+        return dists
+    best = matutils.argsort(dists, topn=topn + len(all_words), reverse=True)
+    # ignore (don't return) words from the input
+    result = [(model.index2word[sim], float(dists[sim])) for sim in best if sim not in all_words]
+    return result[:topn]
+
+
+def print_most_similar_words(word, model, synnorm, N=10):
+    print("\n--- " + str(N) + " most similar words of '"+ word +"' ---" )
+    res = most_similar(model, synnorm, positive=[word], topn=N)
+    for item in res:
+        print(item[0]+ ' : ' + str(item[1]))
+
+
+def print_most_similar_words_two(word, model, synnorm1, synnorm2, N=10):
+    print("\n--- " + str(N) + " most similar words of '"+ word +"' ---" )
+    res = most_similar_two(model, synnorm1, synnorm2, positive=[word], topn=N)
+    for item in res:
+        print(item[0]+ ' : ' + str(item[1]))
 
