@@ -47,7 +47,8 @@ class BillionWordData(Word2VecData):
                         tar.extractall(self.data_dir)
                         tar.close()
             else:
-                print('Data directory already exists. If you want to re-extract data, delete the folder '+ folder_path)
+                print('Data directory already exists. If you want to re-extract data, delete the folder: '
+                       + folder_path + '\n')
 
         # First see if it exists, else download the data
         if not os.path.isdir(data_dir):
@@ -63,7 +64,6 @@ class BillionWordData(Word2VecData):
             for fname in files:
                 if fname.startswith('news'):
                     fpath = os.path.join(dir, fname)
-                    print('Loading json file ' + fpath)
                     tmpdata = load_sentences_in_text_file(fpath)
                     data.extend(tmpdata)
                     self.n_docs += 1
