@@ -227,7 +227,8 @@ class RedditData(Word2VecData):
         -------
         list[tup[list[int, float, str]]]
         list of tuples.
-        each tuple is ([most_similar_idx, most_similar_score, most_similar_comment],
+        each tuple is ([random_sent_idx, 0, comment_to_compare],
+                       [most_similar_idx, most_similar_score, most_similar_comment],
                        [least_similar_idx, least_similar_score, least_similar_coment])
             within the post for a randomly selected comment.
 
@@ -262,9 +263,10 @@ class RedditData(Word2VecData):
                 most_similar_comment = tmp_docs[most_similar_idx]
                 least_similar_score = sorted_score[-1]
                 least_similar_idx = tmp_scores[least_similar_score]
-                least_similar_coment = tmp_docs[least_similar_idx]
-                result.append(([most_similar_idx, most_similar_score, most_similar_comment],
-                         [least_similar_idx, least_similar_score, least_similar_coment]))
+                least_similar_comment = tmp_docs[least_similar_idx]
+                result.append(([idx, 0, ' '.join(sent_to_compare)],
+                               [most_similar_idx, most_similar_score, ' '.join(most_similar_comment)],
+                               [least_similar_idx, least_similar_score, ' '.join(least_similar_comment)]))
 
         return result
 
