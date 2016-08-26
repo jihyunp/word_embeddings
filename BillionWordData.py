@@ -19,6 +19,33 @@ class BillionWordData(Word2VecData):
 
     def __init__(self, data_dir='./data', word2vec_file='./word2vec.vectors', binary=True,
                  vdim=200, window=5, sg=True, min_count=20, workers=5):
+        """
+        Parameters
+        ----------
+        data_dir: str
+            Root data directory that the data will be downloaded and unpacked.
+        word2vec_file : str
+            xx.vectors file that you want to load the w2v model from,
+            or the file you want to save the vectors to.
+            If the file does not exist, it will start training and save the
+            .vectors file in this location. It will also save .vocab and .model.pkl files as well.
+        binary : bool
+            Default True.
+            Save/Load binary vectors
+        vdim : int
+            Dimension of the vectors
+        window : int
+            Word2vec window length. Default 5. 5 previous and 5 later words are considered.
+        sg : bool
+            Skipgram if True (default)
+            CBOW if False
+        min_count : int
+            Minimum count of words that will be considered for training.
+            Default 20.
+        workers : int
+            Number of threads
+            Default 5.
+        """
 
         Word2VecData.__init__(self, data_dir)
         self.window, self.min_count, self.vdim = window, min_count, vdim
