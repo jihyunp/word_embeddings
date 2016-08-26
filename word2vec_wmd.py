@@ -1,4 +1,5 @@
-from RedditData import RedditData, plot_score_histogram, plot_three_scores_hist
+from RedditData import RedditData
+from Word2VecUtils import plot_score_histogram, plot_three_scores_hist
 
 # CBOW model
 data_dir = './reddit_data_MH'
@@ -6,7 +7,7 @@ word2vec_file = './word2vec_reddit_2008_2015_20/gensim_word2vec_2008_2015_orig.v
 reddit_data = RedditData(data_dir, word2vec_file)
 
 n_test = 100
-within_subreddit, within_post, random_doc = reddit_data.get_three_scores(n_test)
+within_subreddit, within_post, random_doc, comments_cbow = reddit_data.get_three_scores(n_test)
 
 plot_score_histogram(within_subreddit, 'within Subreddit', 'wmd_hist_within_subreddit.pdf')
 plot_score_histogram(within_post, 'within Post', 'wmd_hist_within_post.pdf')
@@ -18,10 +19,11 @@ plot_three_scores_hist([within_subreddit, within_post, random_doc],
 
 # Skip gram
 word2vec_file = './word2vec_reddit_sg_2008_2015_20/gensim_word2vec_sg_2008_2015_orig.vectors'
-reddit_data = RedditData(data_dir, word2vec_file)
+word2vec_file_bin = './word2vec_reddit_sg_2008_2015_20/skipgram_binary.vectors'
+reddit_data = RedditData(data_dir, word2vec_file_bin, binary=True)
 
 n_test = 100
-within_subreddit, within_post, random_doc = reddit_data.get_three_scores(n_test)
+within_subreddit, within_post, random_doc, comments_sg = reddit_data.get_three_scores(n_test)
 
 plot_score_histogram(within_subreddit, 'within Subreddit', 'wmd_hist_within_subreddit.pdf')
 plot_score_histogram(within_post, 'within Post', 'wmd_hist_within_post.pdf')
