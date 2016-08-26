@@ -78,6 +78,7 @@ class BillionWordData(Word2VecData):
     def _train_word2vec(self, word2vec_file, binary):
         print('Training Started')
         t1 = datetime.now()
+        print(t1)
         self.w2v_model= Word2Vec(self.sentences, window=self.window, min_count=self.min_count, size=self.vdim,
                                  workers=self.workers, sg=self.sg)
         print('Took %.2f seconds to train the model.' % (datetime.now() - t1).seconds)
@@ -86,12 +87,19 @@ class BillionWordData(Word2VecData):
         model_fname = fname + '.pkl'
         vocab_fname = fname + '.vocab'
 
+        # If the result folder does not exist, generate one.
+        res_folder = os.path.dirname(vectors_fname)
+        if not os.path.isdir(res_folder):
+            os.makedirs(res_folder)
+
         print('Saving vectors and vocabs')
         self.w2v_model.save_word2vec_format(vectors_fname, fvocab=vocab_fname, binary=binary)
         print(datetime.now())
 
         print('Saving model as pickle')
         cp.dump(self.w2v_model, open(model_fname, 'wb'), protocol=cp.HIGHEST_PROTOCOL)
+        print('Done saving')
+        print(datetime.now())
 
 
 
