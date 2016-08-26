@@ -197,16 +197,16 @@ class RedditData(Word2VecData):
             single_data = self.json_data[idx]
             name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
             sent_to_compare = parse_string(single_data['body'])
-            if len(sent_to_compare) < 2:
+            if len(sent_to_compare) < 3:
                 continue
             doc1 = self.get_random_doc_within_subreddit(subreddit, name)
             doc2 = self.get_random_doc_within_post(link_id, name)
             doc3 = self.get_random_doc_outside_subreddit(subreddit)
-            if len(doc1) < 2:
+            if len(doc1) < 3:
                 continue
-            if len(doc2) < 2:
+            if len(doc2) < 3:
                 continue
-            if len(doc3) < 2:
+            if len(doc3) < 3:
                 continue
             within_subreddit.append(self.get_wmdistance(sent_to_compare, doc1))
             within_post.append(self.get_wmdistance(sent_to_compare, doc2))
@@ -216,5 +216,55 @@ class RedditData(Word2VecData):
 
         return within_subreddit, within_post, random_doc, comments
 
+    def get_most_and_least_similar_comments(self, n_test=100):
+        """
 
+        Parameters
+        ----------
+        n_test
+
+        Returns
+        -------
+        list[tup[list[int, float, str]]]
+        list of tuples.
+        each tuple is ([most_similar_idx, most_similar_score, most_similar_comment],
+                       [least_similar_idx, least_similar_score, least_similar_coment])
+            within the post for a randomly selected comment.
+
+        """
+        n_data = self.n_docs
+        test_idx = sample(range(n_data), n_test)
+        result = []
+
+        for idx in test_idx:
+            single_data = self.json_data[idx]
+            name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
+            sent_to_compare = parse_string(single_data['body'])
+            if len(sent_to_compare) < 5:
+                continue
+            idxs_in_same_post = self.link2did[link_id]
+            if len(idxs_in_same_post) < 3:
+                continue
+            else:
+                idxs_copy= list(idxs_in_same_post)
+                did_to_exclude = self.name2did[name]
+                del (idxs_copy[idxs_copy.index(did_to_exclude)])
+                tmp_scores = {}
+                tmp_docs = {}
+                for idx2 in idxs_copy:
+                    doc = parse_string(self.json_data[idx2]['body'])
+                    score = self.get_wmdistance(sent_to_compare, doc)
+                    tmp_scores[score] = idx2
+                    tmp_docs[idx2] = doc
+                sorted_score = np.sort(tmp_scores.keys())
+                most_similar_score = sorted_score[0]
+                most_similar_idx = tmp_scores[most_similar_score]
+                most_similar_comment = tmp_docs[most_similar_idx]
+                least_similar_score = sorted_score[-1]
+                least_similar_idx = tmp_scores[least_similar_score]
+                least_similar_coment = tmp_docs[least_similar_idx]
+                result.append(([most_similar_idx, most_similar_score, most_similar_comment],
+                         [least_similar_idx, least_similar_score, least_similar_coment]))
+
+        return result
 
