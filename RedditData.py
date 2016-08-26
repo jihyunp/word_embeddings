@@ -9,15 +9,16 @@ from datetime import datetime
 from collections import defaultdict
 from random import sample
 from gensim.models import Word2Vec
+from Word2VecUtils import Word2VecData, parse_string
 
 
-class RedditData():
+class RedditData(Word2VecData):
 
     def __init__(self, data_dir='./reddit_data_MH',
-                 word2vec_file='./word2vec_reddit_2008_2015_20/gensim_word2vec_2008_2015_orig.vectors'):
-        self.data_dir = data_dir
+                 word2vec_file='./word2vec_reddit_2008_2015_20/gensim_word2vec_2008_2015_orig.vectors', binary=False):
+        Word2VecData.__init__(self, data_dir)
+
         self.n_docs, self.n_subreddits, self.n_posts = None, None, None
-        self.w2v_model = None
         self.json_data = None
         self.subreddit2did, self.link2did = None, None
         self.name2did, self.did2name = None, None
@@ -26,7 +27,7 @@ class RedditData():
         self._load_reddit_data(data_dir)
         self._get_subreddit_info()
         self._update_stats()
-        self._load_word2vec(word2vec_file)
+        self._load_word2vec(word2vec_file, binary)
         print('Took %.2f seconds to load.' % (datetime.now() - t1).seconds)
 
     def _update_stats(self):
@@ -38,8 +39,16 @@ class RedditData():
         self.sid2subreddit = self.subreddit2did.keys()
         self.subreddit2sid = {y:x for x, y in enumerate(self.sid2subreddit)}
 
-    def _load_word2vec(self, word2vec_file):
-        self.w2v_model = Word2Vec.load_word2vec_format(word2vec_file, binary=False)
+    def _load_word2vec(self, word2vec_file, binary):
+        if not os.path.exists(word2vec_file):
+            print('word2vec_file ' + word2vec_file + ' does not exist. Training first..')
+            self._train_word2vec(word2vec_file, binary)
+        else:
+            if binary:
+                print('Loading binary word2vec vectors')
+            else:
+                print('Loading text word2vec vectors')
+            self.w2v_model = Word2Vec.load_word2vec_format(word2vec_file, binary=binary)
 
     def _load_reddit_data(self, data_dir):
         data = self._load_json(data_dir)
@@ -95,6 +104,11 @@ class RedditData():
                     data.extend(tmpdata)
         return data
 
+    def _train_word2vec(self, word2vec_file, binary):
+        print('_train_word2vec(): Currently this function does nothing. Training should be done separately.')
+        ## word_embeddings/Word2Vec/train_gensim_word2vec_reddit.py
+        pass
+
     @staticmethod
     def extract_subreddit_link_info(single_data):
         """
@@ -131,7 +145,7 @@ class RedditData():
                 del(idxs_copy[idxs_copy.index(did_to_exclude)])
             idx = idxs_copy[sample(range(len(idxs_copy)), 1)[0]]
             doc= self.json_data[idx]["body"]
-            return self.parse_string(doc)
+            return parse_string(doc)
 
     def get_random_doc_within_post(self, link_id, name_to_exclude):
         idxs = self.link2did[link_id]
@@ -143,7 +157,7 @@ class RedditData():
             del(idxs_copy[idxs_copy.index(did_to_exclude)])
             idx = idxs_copy[sample(range(len(idxs_copy)), 1)[0]]
             doc = self.json_data[idx]["body"]
-            return self.parse_string(doc)
+            return parse_string(doc)
 
     def get_random_doc_outside_subreddit(self, subreddit):
         subred_id = self.subreddit2sid[subreddit]
@@ -152,46 +166,37 @@ class RedditData():
         sid = sample(other_sids, 1)[0]
         return self.get_random_doc_within_subreddit(self.sid2subreddit[sid], None)
 
-    @staticmethod
-    def parse_string(doc, remove_stopwords=True):
-        tmpstr = doc
-        tmpstr = tmpstr.lower()
-        tmpstr = re.sub('\[deleted\]', ' ', tmpstr)
-        tmpstr = re.sub('\\n', ' ', tmpstr)
-        tmpstr = re.sub('\\\'', "'", tmpstr)
-        tmpstr = re.sub('[^a-z0-9\-.\' ]', ' ', tmpstr)
-        tmpstr = re.sub(' ---*', ' ', tmpstr)
-        tmpstr = re.sub(r'\s+', ' ', tmpstr)
-        tmpstr = re.sub(r'\.\.+', '. ', tmpstr)  # Remove multiple periods
-        tmpstr = re.sub(" \'", " ", tmpstr)
-        tmpstr = re.sub("\' ", " ", tmpstr)
-        tmpstr = re.sub("\'$", "", tmpstr)
-        tmpstr = re.sub(" -", " ", tmpstr)
-        tmpstr = re.sub("- ", " ", tmpstr)
-        tmpstr = re.sub("-$", "", tmpstr)
-
-        wordlist = tmpstr.split()
-        if remove_stopwords:
-            from nltk.corpus import stopwords
-            stop_words = stopwords.words('english')
-            wordlist = [w for w in wordlist if w not in stop_words]
-        return wordlist
 
     def get_wmdistance(self, doc1, doc2):
         return self.w2v_model.wmdistance(doc1, doc2)
 
     def get_three_scores(self, n_test=1000):
+        """
+        Randomly select a comment, and then randomly select another three comments that are
+        within the same subreddit, within the same post, and a random post outside the subreddit
+        that the selected comment is in.
+        After that, calculate three WMD (Word mover distances) from the selected comment to the
+        three comments. Return the scores with comments.
+
+        :param n_test:
+        :return:  Returns 4 lists
+            1) list of scores within subreddit
+            2) list of scores within thread/post
+            3) list of scores with random doc
+            4) list of [comment, comment used in 1), comment used in 2), comment used in 3)]
+        """
         n_data = self.n_docs
         test_idx = sample(range(n_data), n_test)
 
         within_subreddit = []
         within_post = []
         random_doc = []
+        comments = []
 
         for idx in test_idx:
             single_data = self.json_data[idx]
             name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
-            sent_to_compare = self.parse_string(single_data['body'])
+            sent_to_compare = parse_string(single_data['body'])
             if len(sent_to_compare) < 2:
                 continue
             doc1 = self.get_random_doc_within_subreddit(subreddit, name)
@@ -207,39 +212,9 @@ class RedditData():
             within_post.append(self.get_wmdistance(sent_to_compare, doc2))
             rdist = self.get_wmdistance(sent_to_compare, doc3)
             random_doc.append(rdist)
+            comments.append([sent_to_compare, doc1, doc2, doc3])
 
-        return within_subreddit, within_post, random_doc
-
-
-def plot_score_histogram(score, label, filename):
-    plt.clf()
-    hist_res = plt.hist(score)
-    xmax = max(hist_res[1])
-    ymax = max(hist_res[0])
-    mean_val = round(np.mean(score), 2)
-    std_val = round(np.std(score), 2)
-    plt.text(xmax*0.9, ymax*0.9, 'Mean: '+ str(mean_val)+'\nStd: '+ str(std_val))
-    plt.xlabel('WMD Score')
-    plt.ylabel('Number of posts/comments')
-    plt.title('Word Mover Distance '+ label)
-    plt.savefig(filename)
+        return within_subreddit, within_post, random_doc, comments
 
 
-def plot_three_scores_hist(score_list, label_list, filename):
-    plt.clf()
-    fig, axes = plt.subplots(3, 1, sharex=True, sharey=True)
-    for i, score in enumerate(score_list):
-        ax = axes[i]
-        xmax = max(hist_res[1])
-        xmin = min(hist_res[1])
-        ymax = max(hist_res[0])
-        ymin = min(hist_res[0])
-        xlen = xmax-xmin
-        hist_res = ax.hist(score, bins=xlen, range=(xmin, xmax), align='mid', alpha=0.8)
-        mean_val = round(np.mean(score), 2)
-        std_val = round(np.std(score), 2)
-        ax.text(xmax * 0.85, ymax * 0.85, 'Mean: ' + str(mean_val) + '\nStd: ' + str(std_val))
-        ax.set_title('Word Mover Distance ' + label_list[i])
-    plt.xlabel('WMD Score')
-    axes[1].set_ylabel('Number of posts/comments')
-    plt.savefig(filename)
+
