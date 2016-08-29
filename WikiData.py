@@ -5,7 +5,7 @@ import urllib
 import bz2
 import cPickle as cp
 from Word2VecUtils import Word2VecData, parse_string, \
-    load_sentences_in_text_file, save_output_vectors
+    load_sentences_in_large_text_file, save_output_vectors
 
 
 class WikiData(Word2VecData):
@@ -69,7 +69,7 @@ class WikiData(Word2VecData):
                 command = ['perl', './wikifil_jp.pl' ]
                 subprocess.call(command, stdout=outfile)
             print('Parsing done.')
-        self.sentences = load_sentences_in_text_file(outfile_path, sep=". ")
+        self.sentences = load_sentences_in_large_text_file(outfile_path, sep=". ")
         self.n_sents = len(self.sentences)
         self.n_words = sum(map(len, self.sentences))
 

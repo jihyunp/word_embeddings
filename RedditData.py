@@ -73,7 +73,7 @@ class RedditData(Word2VecData):
             body = d['body']
             if body == '[deleted]':
                 continue
-            if len(body.split()) < 15:
+            if len(body.split()) < 10:
                 continue
             new_data.append(d)
             name, subred, linkid = self.extract_subreddit_link_info(d)
@@ -128,10 +128,10 @@ class RedditData(Word2VecData):
         :param file_name:
         :return: list[dict]
         """
-        f = open(file_name, 'r')
         data = []
-        for line in f:
-            data.append(json.loads(line))
+        with open(file_name, 'r') as f:
+            for line in f:
+                data.append(json.loads(line))
         return data
 
     def get_random_doc_within_subreddit(self, subreddit, name_to_exclude=None):
@@ -168,7 +168,32 @@ class RedditData(Word2VecData):
 
 
     def get_wmdistance(self, doc1, doc2):
+        """
+        Parameters
+        ----------
+        doc1 : list[str]
+            (e.g. ['word', 'mover'])
+        doc2 : list[str]
+
+        Returns
+        -------
+
+        """
         return self.w2v_model.wmdistance(doc1, doc2)
+
+    def get_wmdistance_str(self, str1, str2):
+        """
+        Parameters
+        ----------
+        str1 : str
+            (e.g. 'word mover')
+        str2 : str
+
+        Returns
+        -------
+
+        """
+        return self.w2v_model.wmdistance(str1.split(), str2.split())
 
     def get_three_scores(self, n_test=1000):
         """
@@ -216,12 +241,14 @@ class RedditData(Word2VecData):
 
         return within_subreddit, within_post, random_doc, comments
 
-    def get_most_and_least_similar_comments(self, n_test=100):
+    def get_most_and_least_similar_comments_within_post(self, n_test=10, n_most=3, n_least=3, print_result=True):
         """
 
         Parameters
         ----------
         n_test
+        n_most
+        n_least
 
         Returns
         -------
@@ -238,35 +265,176 @@ class RedditData(Word2VecData):
         result = []
 
         for idx in test_idx:
-            single_data = self.json_data[idx]
-            name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
-            sent_to_compare = parse_string(single_data['body'])
-            if len(sent_to_compare) < 5:
-                continue
-            idxs_in_same_post = self.link2did[link_id]
-            if len(idxs_in_same_post) < 3:
-                continue
-            else:
-                idxs_copy= list(idxs_in_same_post)
-                did_to_exclude = self.name2did[name]
-                del (idxs_copy[idxs_copy.index(did_to_exclude)])
-                tmp_scores = {}
-                tmp_docs = {}
-                for idx2 in idxs_copy:
-                    doc = parse_string(self.json_data[idx2]['body'])
-                    score = self.get_wmdistance(sent_to_compare, doc)
-                    tmp_scores[score] = idx2
-                    tmp_docs[idx2] = doc
-                sorted_score = np.sort(tmp_scores.keys())
-                most_similar_score = sorted_score[0]
-                most_similar_idx = tmp_scores[most_similar_score]
-                most_similar_comment = tmp_docs[most_similar_idx]
-                least_similar_score = sorted_score[-1]
-                least_similar_idx = tmp_scores[least_similar_score]
-                least_similar_comment = tmp_docs[least_similar_idx]
-                result.append(([idx, 0, ' '.join(sent_to_compare)],
-                               [most_similar_idx, most_similar_score, ' '.join(most_similar_comment)],
-                               [least_similar_idx, least_similar_score, ' '.join(least_similar_comment)]))
+            res = self.get_most_and_least_similar_comments_within_post_by_idx(comment_idx=idx,
+                                                                              n_most=n_most, n_least=n_least,
+                                                                              print_result=False, verbose=False)
+            result.append(res)
 
+        if print_result:
+            self.print_most_and_least_similar_comments(result)
         return result
+
+
+    def get_most_and_least_similar_comments_within_post_by_idx(self, comment_idx, n_most=3, n_least=3,
+                                                               print_result=True, verbose=True):
+        idx = comment_idx
+        single_data = self.json_data[idx]
+        name, subreddit, link_id = self.extract_subreddit_link_info(single_data)
+        sent_to_compare_orig = single_data['body']
+        sent_to_compare = parse_string(sent_to_compare_orig)
+        sent_to_compare = [w for w in sent_to_compare if self.w2v_model.vocab.has_key(w)]
+        subreddit = single_data['subreddit']
+        if len(sent_to_compare) < 3:
+            if verbose:
+                print('Too short!')
+            pass
+        idxs_in_same_post = self.link2did[link_id]
+        if len(idxs_in_same_post) < n_most + n_least + 1:
+            if verbose:
+                print('No existing subreddit named ' + subreddit + '. Randomly sampling the test comments.')
+            pass
+        else:
+            idxs_copy= list(idxs_in_same_post)
+            did_to_exclude = self.name2did[name]
+            del (idxs_copy[idxs_copy.index(did_to_exclude)])
+            tmp_score2idx = {}
+            tmp_docs = {}
+            for idx2 in idxs_copy:
+                doc = parse_string(self.json_data[idx2]['body'])
+                score = self.get_wmdistance(sent_to_compare, doc)
+                tmp_score2idx[score] = idx2
+                tmp_docs[idx2] = doc
+
+            sorted_score = np.sort(tmp_score2idx.keys())
+            similar_scores = sorted_score[:n_most]
+            similar_idxs = [tmp_score2idx[sc] for sc in similar_scores]
+            similar_comments = [' '.join(tmp_docs[i]) for i in similar_idxs]
+            similar_comments_orig = [self.json_data[i]['body'] for i in similar_idxs]
+
+            unsimilar_scores = sorted_score[-n_least:][::-1]
+            unsimilar_idxs = [tmp_score2idx[sc] for sc in unsimilar_scores]
+            unsimilar_comments = [' '.join(tmp_docs[i]) for i in unsimilar_idxs]
+            unsimilar_comments_orig = [self.json_data[i]['body'] for i in unsimilar_idxs]
+
+            result = ([idx, 0, ' '.join(sent_to_compare), sent_to_compare_orig],
+                           [similar_idxs, similar_scores, similar_comments, similar_comments_orig],
+                           [unsimilar_idxs, unsimilar_scores, unsimilar_comments, unsimilar_comments_orig], subreddit)
+
+            if print_result:
+                self.print_most_and_least_similar_comments(result)
+            return result
+
+
+    def get_most_and_least_similar_comments_custom(self, sent_to_compare_orig, n_pool=50,
+                                                   n_most=3, n_least=3,
+                                                   subreddit=None, verbose=True, print_result=True):
+
+        sent_to_compare = parse_string(sent_to_compare_orig)
+        sent_to_compare = [w for w in sent_to_compare if self.w2v_model.vocab.has_key(w)]
+        if len(sent_to_compare) < 3:
+            if verbose:
+                print('Sentence too short!')
+            pass
+
+        if subreddit is None:
+            idxs_in_pool= sample(range(self.n_docs), n_pool)
+        else:
+            if self.subreddit2did.has_key(subreddit):
+                idxs_subreddit = self.subreddit2did[subreddit]
+                idxs_in_pool = sample(idxs_subreddit, n_pool)
+            else:
+                if verbose:
+                    print('No existing subreddit named ' + subreddit + '. Randomly sampling the test comments.')
+                idxs_in_pool = sample(range(self.n_docs), n_pool)
+
+        if len(idxs_in_pool) < n_most + n_least + 1:
+            if verbose:
+                print('Not enough comments in the subreddit. It should be n_pool > n_most + n_least + 1')
+            pass
+        else:
+            tmp_score2idx = {}
+            tmp_docs = {}
+            for idx2 in idxs_in_pool:
+                doc = parse_string(self.json_data[idx2]['body'])
+                score = self.get_wmdistance(sent_to_compare, doc)
+                tmp_score2idx[score] = idx2
+                tmp_docs[idx2] = doc
+
+            sorted_score = np.sort(tmp_score2idx.keys())
+            similar_scores = sorted_score[:n_most]
+            similar_idxs = [tmp_score2idx[sc] for sc in similar_scores]
+            similar_comments = [' '.join(tmp_docs[i]) for i in similar_idxs]
+            similar_comments_orig = [self.json_data[i]['body'] for i in similar_idxs]
+
+            unsimilar_scores = sorted_score[-n_least:][::-1]
+            unsimilar_idxs = [tmp_score2idx[sc] for sc in unsimilar_scores]
+            unsimilar_comments = [' '.join(tmp_docs[i]) for i in unsimilar_idxs]
+            unsimilar_comments_orig = [self.json_data[i]['body'] for i in unsimilar_idxs]
+
+            result = (['-', 0, ' '.join(sent_to_compare), sent_to_compare_orig],
+                           [similar_idxs, similar_scores, similar_comments, similar_comments_orig],
+                           [unsimilar_idxs, unsimilar_scores, unsimilar_comments, unsimilar_comments_orig])
+
+            self.print_most_and_least_similar_comments(result)
+            return result
+
+
+    def print_most_and_least_similar_comments(self, result):
+        if type(result) == tuple:
+            item = result
+            rsent = item[0]
+            most = item[1]
+            least = item[2]
+            print('--------------------------------------------------------------------------')
+            print('--------------------------------------------------------------------------')
+            print('* Comment ID ' + str(rsent[0]))
+            if len(item) == 4:
+                subreddit = item[3]
+                print('- Subreddit: ' + subreddit)
+            print('- Words considered: ' + rsent[2])
+            print('( Orig txt: ' +  rsent[3] + ' )')
+            print('\n')
+            print('----------------------MOST SIMILAR------------------------')
+            for i in range(len(most[0])):
+                print('* Most Similar Comment ID ' + str(most[0][i]))
+                print('- Score: ' + str(most[1][i]))
+                print('- Words considered: ' + most[2][i])
+                print('( Orig txt: ' +  most[3][i]+ ' )')
+                print('\n')
+            print('----------------------LEAST SIMILAR------------------------')
+            for i in range(len(least[0])):
+                print('* Least Similar Comment ID ' + str(least[0][i]))
+                print('- Score: ' + str(least[1][i]))
+                print('- Words considered: ' + least[2][i])
+                print('( Orig txt: ' +  least[3][i] + ' )')
+                print('\n')
+
+        else: # If it's a list
+            for item in result:
+                print('--------------------------------------------------------------------------')
+                print('--------------------------------------------------------------------------')
+                rsent = item[0]
+                most = item[1]
+                least = item[2]
+                print('* Comment ID ' + str(rsent[0]))
+                if len(item) == 4:
+                    subreddit = item[3]
+                    print('- Subreddit: ' + subreddit)
+                print('- Words considered: ' + rsent[2])
+                print('( Orig txt: ' +  rsent[3] + ' )')
+                print('\n')
+                print('----------------------MOST SIMILAR------------------------')
+                for i in range(len(most[0])):
+                    print('* Most Similar Comment ID ' + str(most[0][i]))
+                    print('- Score: ' + str(most[1][i]))
+                    print('- Words considered: ' + most[2][i])
+                    print('( Orig txt: ' +  most[3][i] + ' )')
+                    print('\n')
+                print('----------------------LEAST SIMILAR------------------------')
+                for i in range(len(least[0])):
+                    print('* Least Similar Comment ID ' + str(least[0][i]))
+                    print('- Score: ' + str(least[1][i]))
+                    print('- Words considered: ' + least[2][i])
+                    print('( Orig txt: ' +  least[3][i] + ' )')
+                    print('\n')
 
