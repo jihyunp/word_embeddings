@@ -29,6 +29,7 @@ reddit_data= RedditData(data_dir, word2vec_file, binary=True)
 n_test = 2000
 within_subreddit, within_post, random_doc, comments_sg = reddit_data.get_three_scores(n_test)
 
+print('plotting histograms')
 plot_score_histogram(within_subreddit, 'within Subreddit', 'wmd_hist_within_subreddit.pdf')
 plot_score_histogram(within_post, 'within Post', 'wmd_hist_within_post.pdf')
 plot_score_histogram(random_doc, 'with Random Docs', 'wmd_hist_random_doc.pdf')
@@ -37,10 +38,11 @@ plot_three_scores_hist([within_subreddit, within_post, random_doc],
                        ['within Subreddit', 'within Post', 'with Random Docs'],
                        'wmd_three_hist_sg.pdf')
 
-
+print('get most and least similar comments within the post')
 res1 = reddit_data.get_most_and_least_similar_comments_within_post(n_test=50, n_most=3, n_least=3,
                                                                    print_result=True)
-
+print('done')
+print(datetime.now())
 # test_sent = 'distributed representations of words and phrases and their compositionality'
 # res2 = reddit_data.get_most_and_least_similar_comments_custom(test_sent, n_pool=50,
 #                                                              n_most=3, n_least=3,
@@ -57,12 +59,14 @@ res1 = reddit_data.get_most_and_least_similar_comments_within_post(n_test=50, n_
 
 
 """ billion word (news) embeddings, skipgram """
+print('\nWith billion word (news) embeddings.. ')
 word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/reddit_word2vec_sg/skipgram_binary.vectors'
 reddit_data_billion_emb = RedditData(data_dir, word2vec_file, binary=False)
 
 n_test = 2000
 within_subreddit_b, within_post_b, random_doc_b, comments_sg_b = reddit_data_billion_emb.get_three_scores(n_test)
 
+print('plotting histograms')
 plot_score_histogram(within_subreddit_b, 'within Subreddit, News Embeddings', './fig/wmd_hist_within_subreddit_billion.pdf')
 plot_score_histogram(within_post_b, 'within Post, News Embeddings', './fig/wmd_hist_within_post_billion.pdf')
 plot_score_histogram(random_doc_b, 'with Random Docs, News Embeddings', './fig/wmd_hist_random_doc_billion.pdf')
@@ -71,10 +75,11 @@ plot_three_scores_hist([within_subreddit_b, within_post_b, random_doc_b],
                        ['within Subreddit', 'within Post', 'with Random Docs'],
                        './fig/wmd_three_hist_sg_billion.pdf')
 
-
+print('get most and least similar comments within the post')
 res_b = reddit_data.get_most_and_least_similar_comments_within_post(n_test=50, n_most=3, n_least=3,
                                                                    print_result=True)
-
+print('done')
+print(datetime.now())
 
 
 
