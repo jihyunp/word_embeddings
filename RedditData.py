@@ -268,7 +268,8 @@ class RedditData(Word2VecData):
             res = self.get_most_and_least_similar_comments_within_post_by_idx(comment_idx=idx,
                                                                               n_most=n_most, n_least=n_least,
                                                                               print_result=False, verbose=False)
-            result.append(res)
+            if res is not None:
+                result.append(res)
 
         if print_result:
             self.print_most_and_least_similar_comments(result)
@@ -303,7 +304,7 @@ class RedditData(Word2VecData):
                 doc = parse_string(self.json_data[idx2]['body'])
                 score = self.get_wmdistance(sent_to_compare, doc)
                 tmp_score2idx[score] = idx2
-                tmp_docs[idx2] = doc
+                tmp_docs[idx2] = [w for w in doc if self.w2v_model.vocab.has_key(w)]
 
             sorted_score = np.sort(tmp_score2idx.keys())
             similar_scores = sorted_score[:n_most]
@@ -358,7 +359,7 @@ class RedditData(Word2VecData):
                 doc = parse_string(self.json_data[idx2]['body'])
                 score = self.get_wmdistance(sent_to_compare, doc)
                 tmp_score2idx[score] = idx2
-                tmp_docs[idx2] = doc
+                tmp_docs[idx2] = [w for w in doc if self.w2v_model.vocab.has_key(w)]
 
             sorted_score = np.sort(tmp_score2idx.keys())
             similar_scores = sorted_score[:n_most]
@@ -387,7 +388,7 @@ class RedditData(Word2VecData):
             least = item[2]
             print('--------------------------------------------------------------------------')
             print('--------------------------------------------------------------------------')
-            print('* Comment ID ' + str(rsent[0]))
+            print('* Comment Name ' + self.did2name[rsent[0]] + '(did: ' + str(rsent[0]) + ')')
             if len(item) == 4:
                 subreddit = item[3]
                 print('- Subreddit: ' + subreddit)
@@ -396,14 +397,16 @@ class RedditData(Word2VecData):
             print('\n')
             print('----------------------MOST SIMILAR------------------------')
             for i in range(len(most[0])):
-                print('* Most Similar Comment ID ' + str(most[0][i]))
+                print('* Most Similar Comment ' + str(i))
+                print('* Comment Name ' + self.did2name[most[0][i]] + '(did: ' + str(most[0][i]) + ')')
                 print('- Score: ' + str(most[1][i]))
                 print('- Words considered: ' + most[2][i])
                 print('( Orig txt: ' +  most[3][i]+ ' )')
                 print('\n')
             print('----------------------LEAST SIMILAR------------------------')
             for i in range(len(least[0])):
-                print('* Least Similar Comment ID ' + str(least[0][i]))
+                print('* Least Similar Comment ' + str(i))
+                print('* Comment Name ' + self.did2name[least[0][i]] + '(did: ' + str(least[0][i]) + ')')
                 print('- Score: ' + str(least[1][i]))
                 print('- Words considered: ' + least[2][i])
                 print('( Orig txt: ' +  least[3][i] + ' )')
@@ -411,12 +414,14 @@ class RedditData(Word2VecData):
 
         else: # If it's a list
             for item in result:
+                if item is None:
+                    continue
                 print('--------------------------------------------------------------------------')
                 print('--------------------------------------------------------------------------')
                 rsent = item[0]
                 most = item[1]
                 least = item[2]
-                print('* Comment ID ' + str(rsent[0]))
+                print('* Comment Name ' + self.did2name[rsent[0]] + '(did: ' + str(rsent[0]) + ')')
                 if len(item) == 4:
                     subreddit = item[3]
                     print('- Subreddit: ' + subreddit)
@@ -425,16 +430,84 @@ class RedditData(Word2VecData):
                 print('\n')
                 print('----------------------MOST SIMILAR------------------------')
                 for i in range(len(most[0])):
-                    print('* Most Similar Comment ID ' + str(most[0][i]))
+                    print('* Most Similar Comment ' + str(i))
+                    print('* Comment Name ' + self.did2name[most[0][i]] + '(did: ' + str(most[0][i]) + ')')
                     print('- Score: ' + str(most[1][i]))
                     print('- Words considered: ' + most[2][i])
                     print('( Orig txt: ' +  most[3][i] + ' )')
                     print('\n')
                 print('----------------------LEAST SIMILAR------------------------')
                 for i in range(len(least[0])):
-                    print('* Least Similar Comment ID ' + str(least[0][i]))
+                    print('* Least Similar Comment ' + str(i))
+                    print('* Comment Name ' + self.did2name[least[0][i]] + '(did: ' + str(least[0][i]) + ')')
                     print('- Score: ' + str(least[1][i]))
                     print('- Words considered: ' + least[2][i])
                     print('( Orig txt: ' +  least[3][i] + ' )')
                     print('\n')
+
+#
+# def print_most_and_least_similar_comments(result, model_vocab):
+#     if type(result) == tuple:
+#         item = result
+#         rsent = item[0]
+#         most = item[1]
+#         least = item[2]
+#         print('--------------------------------------------------------------------------')
+#         print('--------------------------------------------------------------------------')
+#         print('* Comment ID ' + str(rsent[0]))
+#         if len(item) == 4:
+#             subreddit = item[3]
+#             print('- Subreddit: ' + subreddit)
+#         print('- Words considered: ' + rsent[2])
+#         print('( Orig txt: ' + rsent[3] + ' )')
+#         print('\n')
+#         print('----------------------MOST SIMILAR------------------------')
+#         for i in range(len(most[0])):
+#             print('* Most Similar Comment ID ' + str(most[0][i]))
+#             print('- Score: ' + str(most[1][i]))
+#             print('- Words considered: ' + most[2][i])
+#             print('( Orig txt: ' + most[3][i] + ' )')
+#             print('\n')
+#         print('----------------------LEAST SIMILAR------------------------')
+#         for i in range(len(least[0])):
+#             print('* Least Similar Comment ID ' + str(least[0][i]))
+#             print('- Score: ' + str(least[1][i]))
+#             print('- Words considered: ' + least[2][i])
+#             print('( Orig txt: ' + least[3][i] + ' )')
+#             print('\n')
+#
+#     else:  # If it's a list
+#         for item in result:
+#             if item is None:
+#                 continue
+#             print('--------------------------------------------------------------------------')
+#             print('--------------------------------------------------------------------------')
+#             rsent = item[0]
+#             most = item[1]
+#             least = item[2]
+#             print('* Comment ID ' + str(rsent[0]))
+#             if len(item) == 4:
+#                 subreddit = item[3]
+#                 print('- Subreddit: ' + subreddit)
+#             wcons = [w for w in rsent[2].split() if model_vocab.has_key(w) ]
+#             print('- Words considered: ' + ' '.join(wcons))
+#             print('( Orig txt: ' + rsent[3] + ' )')
+#             print('\n')
+#             print('----------------------MOST SIMILAR------------------------')
+#             for i in range(len(most[0])):
+#                 print('* Most Similar Comment ID ' + str(most[0][i]))
+#                 print('- Score: ' + str(most[1][i]))
+#                 wcons1 = [w for w in most[2][i].split() if model_vocab.has_key(w) ]
+#                 print('- Words considered: ' + ' '.join(wcons1))
+#                 print('( Orig txt: ' + most[3][i] + ' )')
+#                 print('\n')
+#             print('----------------------LEAST SIMILAR------------------------')
+#             for i in range(len(least[0])):
+#                 print('* Least Similar Comment ID ' + str(least[0][i]))
+#                 print('- Score: ' + str(least[1][i]))
+#                 wcons2 = [w for w in least[2][i].split() if model_vocab.has_key(w) ]
+#                 print('- Words considered: ' + ' '.join(wcons2))
+#                 print('( Orig txt: ' + least[3][i] + ' )')
+#                 print('\n')
+#
 
