@@ -30,9 +30,9 @@ n_test = 2000
 within_subreddit, within_post, random_doc, comments_sg = reddit_data.get_three_scores(n_test)
 
 print('plotting histograms')
-plot_score_histogram(within_subreddit, 'within Subreddit', './wmd_hist_within_subreddit.pdf')
-plot_score_histogram(within_post, 'within Post', './wmd_hist_within_post.pdf')
-plot_score_histogram(random_doc, 'with Random Docs', './wmd_hist_random_doc.pdf')
+plot_score_histogram(within_subreddit, 'within Subreddit', './fig/wmd_hist_within_subreddit.pdf')
+plot_score_histogram(within_post, 'within Post', './fig/wmd_hist_within_post.pdf')
+plot_score_histogram(random_doc, 'with Random Docs', './fig/wmd_hist_random_doc.pdf')
 
 plot_three_scores_hist([within_subreddit, within_post, random_doc],
                        ['within Subreddit', 'within Post', 'with Random Docs'],
