@@ -60,7 +60,7 @@ print(datetime.now())
 
 """ billion word (news) embeddings, skipgram """
 print('\nWith billion word (news) embeddings.. ')
-word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/reddit_word2vec_sg/skipgram_binary.vectors'
+word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/billion_word2vec_sg/billion_word2vec_sg.vectors'
 reddit_data_billion_emb = RedditData(data_dir, word2vec_file, binary=False)
 
 n_test = 2000
