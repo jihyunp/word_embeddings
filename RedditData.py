@@ -388,7 +388,7 @@ class RedditData(Word2VecData):
             least = item[2]
             print('--------------------------------------------------------------------------')
             print('--------------------------------------------------------------------------')
-            print('* Comment Name ' + self.did2name[rsent[0]] + '(did: ' + str(rsent[0]) + ')')
+            print('* Comment Name: ' + self.did2name[rsent[0]] + ' (did: ' + str(rsent[0]) + ')')
             if len(item) == 4:
                 subreddit = item[3]
                 print('- Subreddit: ' + subreddit)
@@ -397,16 +397,16 @@ class RedditData(Word2VecData):
             print('\n')
             print('----------------------MOST SIMILAR------------------------')
             for i in range(len(most[0])):
-                print('* Most Similar Comment ' + str(i))
-                print('* Comment Name ' + self.did2name[most[0][i]] + '(did: ' + str(most[0][i]) + ')')
+                print('* Most Similar Comment ' + str(i+1))
+                print('* Comment Name: ' + self.did2name[most[0][i]] + ' (did: ' + str(most[0][i]) + ')')
                 print('- Score: ' + str(most[1][i]))
                 print('- Words considered: ' + most[2][i])
                 print('( Orig txt: ' +  most[3][i]+ ' )')
                 print('\n')
             print('----------------------LEAST SIMILAR------------------------')
             for i in range(len(least[0])):
-                print('* Least Similar Comment ' + str(i))
-                print('* Comment Name ' + self.did2name[least[0][i]] + '(did: ' + str(least[0][i]) + ')')
+                print('* Least Similar Comment ' + str(i+1))
+                print('* Comment Name: ' + self.did2name[least[0][i]] + ' (did: ' + str(least[0][i]) + ')')
                 print('- Score: ' + str(least[1][i]))
                 print('- Words considered: ' + least[2][i])
                 print('( Orig txt: ' +  least[3][i] + ' )')
@@ -421,7 +421,7 @@ class RedditData(Word2VecData):
                 rsent = item[0]
                 most = item[1]
                 least = item[2]
-                print('* Comment Name ' + self.did2name[rsent[0]] + '(did: ' + str(rsent[0]) + ')')
+                print('* Comment Name: ' + self.did2name[rsent[0]] + ' (did: ' + str(rsent[0]) + ')')
                 if len(item) == 4:
                     subreddit = item[3]
                     print('- Subreddit: ' + subreddit)
@@ -430,16 +430,16 @@ class RedditData(Word2VecData):
                 print('\n')
                 print('----------------------MOST SIMILAR------------------------')
                 for i in range(len(most[0])):
-                    print('* Most Similar Comment ' + str(i))
-                    print('* Comment Name ' + self.did2name[most[0][i]] + '(did: ' + str(most[0][i]) + ')')
+                    print('* Most Similar Comment ' + str(i+1))
+                    print('* Comment Name: ' + self.did2name[most[0][i]] + ' (did: ' + str(most[0][i]) + ')')
                     print('- Score: ' + str(most[1][i]))
                     print('- Words considered: ' + most[2][i])
                     print('( Orig txt: ' +  most[3][i] + ' )')
                     print('\n')
                 print('----------------------LEAST SIMILAR------------------------')
                 for i in range(len(least[0])):
-                    print('* Least Similar Comment ' + str(i))
-                    print('* Comment Name ' + self.did2name[least[0][i]] + '(did: ' + str(least[0][i]) + ')')
+                    print('* Least Similar Comment ' + str(i+1))
+                    print('* Comment Name: ' + self.did2name[least[0][i]] + ' (did: ' + str(least[0][i]) + ')')
                     print('- Score: ' + str(least[1][i]))
                     print('- Words considered: ' + least[2][i])
                     print('( Orig txt: ' +  least[3][i] + ' )')
