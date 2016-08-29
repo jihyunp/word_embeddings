@@ -18,7 +18,9 @@ from datetime import datetime
 #                        ['within Subreddit', 'within Post', 'with Random Docs'],
 #                        'wmd_three_hist_cbow.pdf')
 
-# Skip gram
+
+""" Skip gram """
+
 data_dir = '/extra/jihyunp0/research/word_embeddings/data/reddit_data_MH'
 # word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/reddit_word2vec_sg/gensim_word2vec_sg_2008_2015.vectors'
 word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/reddit_word2vec_sg/skipgram_binary.vectors'
@@ -54,43 +56,27 @@ res1 = reddit_data.get_most_and_least_similar_comments_within_post(n_test=10, n_
 # reddit_data.get_wmdistance_str(string1, string2)
 
 
+""" billion word (news) embeddings, skipgram """
+word2vec_file = '/extra/jihyunp0/research/word_embeddings/result/reddit_word2vec_sg/skipgram_binary.vectors'
+reddit_data_billion_emb = RedditData(data_dir, word2vec_file, binary=False)
+
+n_test = 2000
+within_subreddit_b, within_post_b, random_doc_b, comments_sg_b = reddit_data_billion_emb.get_three_scores(n_test)
+
+plot_score_histogram(within_subreddit_b, 'within Subreddit, News Embeddings', 'fig/wmd_hist_within_subreddit_billion.pdf')
+plot_score_histogram(within_post_b, 'within Post, News Embeddings', 'fig/wmd_hist_within_post_billion.pdf')
+plot_score_histogram(random_doc_b, 'with Random Docs, News Embeddings', 'fig/wmd_hist_random_doc_billion.pdf')
+
+plot_three_scores_hist([within_subreddit_b, within_post_b, random_doc_b],
+                       ['within Subreddit', 'within Post', 'with Random Docs'],
+                       'fig/wmd_three_hist_sg_billion.pdf')
+
+
+res_b = reddit_data.get_most_and_least_similar_comments_within_post(n_test=10, n_most=3, n_least=3,
+                                                                   print_result=True)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-print('\nGetting the most and the least similar comments within the same thread')
-t3 = datetime.now()
-most_and_least = reddit_data_sg.get_most_and_least_similar_comments_within_post(100)
-print('Took %.2f seconds' % (datetime.now() - t3).seconds)
-
-
-for item in most_and_least[10:20]:
-    print('----------------------------------------')
-    rsent = item[0]
-    most = item[1]
-    least = item[2]
-    print('Sent '+ str(rsent[0]) )
-    print(rsent[2])
-    print('\n')
-    print('Most Similar Sent ' + str(most[0]))
-    print('Score: ' + str(most[1]))
-    print(most[2])
-    print('\n')
-    print('Least Similar Sent ' + str(least[0]))
-    print('Score: ' + str(least[1]))
-    print(least[2])
 
 

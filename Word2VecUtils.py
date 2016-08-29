@@ -168,6 +168,9 @@ def parse_string(doc, remove_stopwords=True):
 
 
 def plot_score_histogram(score, label, filename):
+    dirpath= os.path.dirname(filename)
+    if not os.path.isdir(dirpath):
+        os.makedirs(dirpath)
     plt.clf()
     hist_res = plt.hist(score)
     xmax = max(hist_res[1])
@@ -182,6 +185,11 @@ def plot_score_histogram(score, label, filename):
 
 
 def plot_three_scores_hist(score_list, label_list, filename):
+
+    dirpath= os.path.dirname(filename)
+    if not os.path.isdir(dirpath):
+        os.makedirs(dirpath)
+
     plt.clf()
     fig, axes = plt.subplots(3, 1, sharex=True, sharey=True)
     xmax = np.ceil(np.max(score_list))
@@ -209,6 +217,11 @@ def plot_three_scores_hist(score_list, label_list, filename):
 
 
 def plot_three_scores_plot1(score_list, label_list, filename):
+
+    dirpath= os.path.dirname(filename)
+    if not os.path.isdir(dirpath):
+        os.makedirs(dirpath)
+
     plt.clf()
     fig, axes = plt.subplots()
     xmax = len(score_list[0])
@@ -231,6 +244,11 @@ def plot_three_scores_plot1(score_list, label_list, filename):
 
 
 def plot_three_scores_plot(score_list, label_list, filename):
+
+    dirpath= os.path.dirname(filename)
+    if not os.path.isdir(dirpath):
+        os.makedirs(dirpath)
+
     plt.clf()
     fig, axes = plt.subplots(3, 1, sharex=True, sharey=True)
     xmax = len(score_list[0])
