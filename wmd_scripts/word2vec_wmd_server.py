@@ -38,7 +38,7 @@ plot_three_scores_hist([within_subreddit, within_post, random_doc],
                        'wmd_three_hist_sg.pdf')
 
 
-res1 = reddit_data.get_most_and_least_similar_comments_within_post(n_test=10, n_most=3, n_least=3,
+res1 = reddit_data.get_most_and_least_similar_comments_within_post(n_test=50, n_most=3, n_least=3,
                                                                    print_result=True)
 
 # test_sent = 'distributed representations of words and phrases and their compositionality'
@@ -72,7 +72,7 @@ plot_three_scores_hist([within_subreddit_b, within_post_b, random_doc_b],
                        './fig/wmd_three_hist_sg_billion.pdf')
 
 
-res_b = reddit_data.get_most_and_least_similar_comments_within_post(n_test=10, n_most=3, n_least=3,
+res_b = reddit_data.get_most_and_least_similar_comments_within_post(n_test=50, n_most=3, n_least=3,
                                                                    print_result=True)
 
 
