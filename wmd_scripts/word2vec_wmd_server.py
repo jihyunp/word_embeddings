@@ -63,13 +63,13 @@ reddit_data_billion_emb = RedditData(data_dir, word2vec_file, binary=False)
 n_test = 2000
 within_subreddit_b, within_post_b, random_doc_b, comments_sg_b = reddit_data_billion_emb.get_three_scores(n_test)
 
-plot_score_histogram(within_subreddit_b, 'within Subreddit, News Embeddings', 'fig/wmd_hist_within_subreddit_billion.pdf')
-plot_score_histogram(within_post_b, 'within Post, News Embeddings', 'fig/wmd_hist_within_post_billion.pdf')
-plot_score_histogram(random_doc_b, 'with Random Docs, News Embeddings', 'fig/wmd_hist_random_doc_billion.pdf')
+plot_score_histogram(within_subreddit_b, 'within Subreddit, News Embeddings', './fig/wmd_hist_within_subreddit_billion.pdf')
+plot_score_histogram(within_post_b, 'within Post, News Embeddings', './fig/wmd_hist_within_post_billion.pdf')
+plot_score_histogram(random_doc_b, 'with Random Docs, News Embeddings', './fig/wmd_hist_random_doc_billion.pdf')
 
 plot_three_scores_hist([within_subreddit_b, within_post_b, random_doc_b],
                        ['within Subreddit', 'within Post', 'with Random Docs'],
-                       'fig/wmd_three_hist_sg_billion.pdf')
+                       './fig/wmd_three_hist_sg_billion.pdf')
 
 
 res_b = reddit_data.get_most_and_least_similar_comments_within_post(n_test=10, n_most=3, n_least=3,
